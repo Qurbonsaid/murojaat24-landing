@@ -7,7 +7,10 @@ const Footer = () => {
             © 2024 Murojaat24. Barcha huquqlar himoyalangan.
           </p>
           <p className="text-sm text-muted-foreground">
-            Aloqa: <a href="tel:+998711234567" className="hover:text-primary transition-colors">+998 71 123 45 67</a>
+            Ishonch telefoni:{" "}
+            <a href="tel:1089" className="hover:text-primary transition-colors">
+              1089
+            </a>
           </p>
         </div>
       </div>
