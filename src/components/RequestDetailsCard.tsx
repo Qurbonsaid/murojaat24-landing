@@ -6,9 +6,10 @@ interface RequestDetails {
   id: string;
   type: string;
   address: string;
-  phone: string;
+  phone?: string | null;
   submittedDate: string;
   status: string;
+  statusLabel?: string;
 }
 
 interface RequestDetailsCardProps {
@@ -17,13 +18,18 @@ interface RequestDetailsCardProps {
 
 const RequestDetailsCard = ({ request }: RequestDetailsCardProps) => {
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "jarayonda":
-        return "bg-warning text-warning-foreground";
-      case "bajarildi":
-        return "bg-secondary text-secondary-foreground";
-      case "qabul qilindi":
+    switch (status) {
+      case "new":
         return "bg-primary text-primary-foreground";
+      case "assigned":
+        return "bg-blue-500 text-white";
+      case "in-progress":
+        return "bg-warning text-warning-foreground";
+      case "completed":
+      case "verified":
+        return "bg-secondary text-secondary-foreground";
+      case "rejected":
+        return "bg-destructive text-destructive-foreground";
       default:
         return "bg-muted text-muted-foreground";
     }
@@ -37,7 +43,9 @@ const RequestDetailsCard = ({ request }: RequestDetailsCardProps) => {
       <CardContent className="space-y-4">
         <div className="space-y-3">
           <div>
-            <p className="text-sm text-muted-foreground mb-1">Murojaat raqami</p>
+            <p className="text-sm text-muted-foreground mb-1">
+              Murojaat raqami
+            </p>
             <p className="font-semibold text-primary">{request.id}</p>
           </div>
 
@@ -59,13 +67,15 @@ const RequestDetailsCard = ({ request }: RequestDetailsCardProps) => {
 
           <div>
             <p className="text-sm text-muted-foreground mb-1">Telefon</p>
-            <p className="font-medium">{request.phone}</p>
+            <p className="font-medium">{request.phone || "-"}</p>
           </div>
 
           <Separator />
 
           <div>
-            <p className="text-sm text-muted-foreground mb-1">Yuborilgan vaqt</p>
+            <p className="text-sm text-muted-foreground mb-1">
+              Yuborilgan vaqt
+            </p>
             <p className="font-medium">{request.submittedDate}</p>
           </div>
 
@@ -73,7 +83,9 @@ const RequestDetailsCard = ({ request }: RequestDetailsCardProps) => {
 
           <div>
             <p className="text-sm text-muted-foreground mb-1">Holati</p>
-            <Badge className={getStatusColor(request.status)}>{request.status}</Badge>
+            <Badge className={getStatusColor(request.status)}>
+              {request.statusLabel || request.status}
+            </Badge>
           </div>
         </div>
       </CardContent>

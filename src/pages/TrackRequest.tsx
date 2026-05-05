@@ -7,20 +7,73 @@ import { Search } from "lucide-react";
 import TrackingTimeline from "@/components/TrackingTimeline";
 import RequestDetailsCard from "@/components/RequestDetailsCard";
 import RequestProblemSection from "@/components/RequestProblemSection";
+import { toast } from "sonner";
+import { ApiError } from "@/lib/api/client";
+import { TrackRequestResponse, useTrackRequest } from "@/lib/api/requests";
 
 const TrackRequest = () => {
   const [trackingNumber, setTrackingNumber] = useState("");
-  const [showResults, setShowResults] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
+  const [requestData, setRequestData] = useState<TrackRequestResponse | null>(
+    null,
+  );
+  const trackRequestMutation = useTrackRequest();
+
+  const statusLabels: Record<string, string> = {
+    new: "Yangi",
+    assigned: "Tayinlangan",
+    "in-progress": "Bajarilmoqda",
+    completed: "Yakunlangan",
+    verified: "Tasdiqlangan",
+    rejected: "Rad etilgan",
+  };
+
+  const formatDateTime = (value: string) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "-";
+    return date.toLocaleString("uz-UZ", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const buildTimelineSteps = (data: TrackRequestResponse) => {
+    if (!data.timeline?.length) {
+      return [];
+    }
+
+    const isFinal = ["completed", "verified", "rejected"].includes(data.status);
+
+    return data.timeline.map((entry, index) => {
+      const isLast = index === data.timeline.length - 1;
+      const isCurrent = isLast && !isFinal;
+      const status = isCurrent ? "in-progress" : "completed";
+
+      return {
+        id: index + 1,
+        title: statusLabels[entry.status] || entry.status,
+        time: formatDateTime(entry.timestamp),
+        description: entry.comment || "Holat yangilandi",
+        badge: isCurrent ? statusLabels[data.status] || data.status : undefined,
+        status: status as "completed" | "in-progress" | "pending",
+      };
+    });
+  };
 
   const handleSearch = async () => {
     if (!trackingNumber.trim()) return;
-    
-    setIsSearching(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsSearching(false);
-    setShowResults(true);
+
+    try {
+      const data = await trackRequestMutation.mutateAsync(trackingNumber);
+      setRequestData(data);
+    } catch (error) {
+      const message =
+        error instanceof ApiError ? error.message : "Murojaat topilmadi";
+      toast.error(message);
+      setRequestData(null);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -29,50 +82,20 @@ const TrackRequest = () => {
     }
   };
 
-  // Mock data - in real app, this would come from API
-  const mockRequestData = {
-    id: trackingNumber || "MUR-2024-001234",
-    type: "Elektr energiyasi",
-    address: "Yunusobod tumani, Abdulla Qodiriy ko'chasi, 12-uy",
-    phone: "+998 90 123 45 67",
-    submittedDate: "19.11.2024, 09:30",
-    status: "Jarayonda",
-    description: "Ko'chamizda elektr energiyasi bilan bog'liq muammo bor. Oxirgi 3 kun ichida elektr tez-tez uzilmoqda. Bu ayniqsa kechki soatlarda yuz bermoqda va ko'p noqulaylik yaratmoqda. Iltimos, tezroq hal qiling.",
-    image: null,
-  };
+  const timelineSteps = requestData ? buildTimelineSteps(requestData) : [];
 
-  const timelineSteps = [
-    {
-      id: 1,
-      title: "Qabul qilindi",
-      time: "19.11.2024, 09:30",
-      description: "Murojaat call center tomonidan qabul qilindi",
-      status: "completed" as const,
-    },
-    {
-      id: 2,
-      title: "Mutaxassisga tayinlandi",
-      time: "19.11.2024, 09:45",
-      description: "Akmal Rahimov (Elektr bo'limi)",
-      badge: "Tayinlangan",
-      status: "completed" as const,
-    },
-    {
-      id: 3,
-      title: "Ish jarayonida",
-      time: "19.11.2024, 10:15",
-      description: "Mutaxassis hozirda muammoni hal qilmoqda",
-      badge: "Jarayonda",
-      status: "in-progress" as const,
-    },
-    {
-      id: 4,
-      title: "Bajarildi",
-      time: "Kutilmoqda",
-      description: "Ish tugaganidan keyin natija bu yerda ko'rsatiladi",
-      status: "pending" as const,
-    },
-  ];
+  const requestDetails = requestData
+    ? {
+        id: requestData.requestNumber,
+        type: requestData.typeLabel || requestData.type,
+        address: requestData.address?.full || "-",
+        phone: "-",
+        submittedDate: formatDateTime(requestData.createdAt),
+        status: requestData.status,
+        statusLabel:
+          requestData.statusLabel || statusLabels[requestData.status],
+      }
+    : null;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -83,7 +106,9 @@ const TrackRequest = () => {
           <div className="max-w-2xl mx-auto mb-12">
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold mb-2">Murojaatni Kuzatish</h1>
-              <p className="text-muted-foreground">Murojaat raqamingizni kiriting</p>
+              <p className="text-muted-foreground">
+                Murojaat raqamingizni kiriting
+              </p>
             </div>
 
             <div className="bg-card rounded-2xl shadow-lg p-6">
@@ -93,7 +118,9 @@ const TrackRequest = () => {
                   <Input
                     placeholder="Masalan: MUR-2024-001234"
                     value={trackingNumber}
-                    onChange={(e) => setTrackingNumber(e.target.value.toUpperCase())}
+                    onChange={(e) =>
+                      setTrackingNumber(e.target.value.toUpperCase())
+                    }
                     onKeyPress={handleKeyPress}
                     className="pl-10 h-12 text-lg"
                   />
@@ -101,17 +128,21 @@ const TrackRequest = () => {
                 <Button
                   size="lg"
                   onClick={handleSearch}
-                  disabled={isSearching || !trackingNumber.trim()}
+                  disabled={
+                    trackRequestMutation.isPending || !trackingNumber.trim()
+                  }
                   className="px-8"
                 >
-                  {isSearching ? "Qidirilmoqda..." : "Qidirish"}
+                  {trackRequestMutation.isPending
+                    ? "Qidirilmoqda..."
+                    : "Qidirish"}
                 </Button>
               </div>
             </div>
           </div>
 
           {/* Results Section */}
-          {showResults && (
+          {requestData && requestDetails && (
             <div className="max-w-6xl mx-auto animate-fade-in">
               <div className="grid lg:grid-cols-3 gap-6 mb-8">
                 {/* Timeline - Takes 2 columns */}
@@ -121,14 +152,14 @@ const TrackRequest = () => {
 
                 {/* Request Details Card - Takes 1 column */}
                 <div>
-                  <RequestDetailsCard request={mockRequestData} />
+                  <RequestDetailsCard request={requestDetails} />
                 </div>
               </div>
 
               {/* Problem Section */}
               <RequestProblemSection
-                description={mockRequestData.description}
-                image={mockRequestData.image}
+                description={requestData.description}
+                image={requestData.images?.[0] || null}
               />
             </div>
           )}

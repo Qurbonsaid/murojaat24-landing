@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -30,57 +30,126 @@ import {
 import { MapPin, Loader2, Check, ChevronsUpDown } from "lucide-react";
 import ImageUpload from "@/components/ImageUpload";
 import SuccessModal from "@/components/SuccessModal";
-import { organizations } from "@/lib/organizations";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { ApiError } from "@/lib/api/client";
+import { useCreateCitizenRequest, useRequestOtp } from "@/lib/api/requests";
+import { fetchOrganizations, Organization } from "../lib/api/organizations";
 
 const formSchema = z.object({
-  requestType: z.string().min(1, { message: "Tashkilotni tanlang" }),
+  citizenName: z
+    .string()
+    .min(2, { message: "Ism-familiyani kiriting" })
+    .max(120, { message: "Ism-familiya juda uzun" }),
+  department: z.string().min(1, { message: "Tashkilotni tanlang" }),
   description: z
     .string()
-    .min(10, { message: "Tavsif kamida 10 ta belgidan iborat bo'lishi kerak" })
-    .max(500, { message: "Tavsif maksimal 500 ta belgidan iborat bo'lishi kerak" }),
-  address: z.string().min(5, { message: "Aniq manzilni kiriting" }),
-  phone: z
-    .string()
-    .regex(/^\+998\s?\d{2}\s?\d{3}\s?\d{2}\s?\d{2}$/, {
-      message: "Telefon raqamini to'g'ri formatda kiriting",
+    .min(20, { message: "Tavsif kamida 20 ta belgidan iborat bo'lishi kerak" })
+    .max(1000, {
+      message: "Tavsif maksimal 1000 ta belgidan iborat bo'lishi kerak",
     }),
+  address: z.string().min(5, { message: "Aniq manzilni kiriting" }),
+  phone: z.string().regex(/^\+998\s?\d{2}\s?\d{3}\s?\d{2}\s?\d{2}$/, {
+    message: "Telefon raqamini to'g'ri formatda kiriting",
+  }),
+  otp: z.string().optional(),
   additionalInfo: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
 const SubmitRequest = () => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState("");
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [descriptionLength, setDescriptionLength] = useState(0);
   const [openOrg, setOpenOrg] = useState(false);
+  const [otpRequested, setOtpRequested] = useState(false);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+
+  const requestOtpMutation = useRequestOtp();
+  const createRequestMutation = useCreateCitizenRequest();
+
+  const isSubmitting =
+    requestOtpMutation.isPending || createRequestMutation.isPending;
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      requestType: "",
+      citizenName: "",
+      department: "",
       description: "",
       address: "",
       phone: "",
+      otp: "",
       additionalInfo: "",
     },
   });
 
+  const normalizePhone = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    const normalized = digits.startsWith("998") ? digits.slice(3) : digits;
+    return normalized ? `+998${normalized}` : "";
+  };
+
   const onSubmit = async (data: FormData) => {
-    setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    
-    // Generate tracking number
-    const randomNum = Math.floor(100000 + Math.random() * 900000);
-    setTrackingNumber(`MUR-2024-${randomNum}`);
-    
-    setIsSubmitting(false);
-    setShowSuccess(true);
+    const normalizedPhone = normalizePhone(data.phone);
+    if (!normalizedPhone) {
+      toast.error("Telefon raqamni to'g'ri kiriting");
+      return;
+    }
+
+    if (!otpRequested) {
+      try {
+        await requestOtpMutation.mutateAsync(normalizedPhone);
+        setOtpRequested(true);
+        toast.success("Tasdiqlash kodi yuborildi");
+      } catch (error) {
+        const message =
+          error instanceof ApiError ? error.message : "Kod yuborishda xatolik";
+        toast.error(message);
+      }
+      return;
+    }
+
+    if (!data.otp) {
+      form.setError("otp", {
+        message: "Tasdiqlash kodi kiritilishi shart",
+      });
+      return;
+    }
+
+    try {
+      const detailLines = [];
+
+      if (data.additionalInfo) {
+        detailLines.push(`Qo'shimcha ma'lumot: ${data.additionalInfo}`);
+      }
+
+      detailLines.push(`Tashkilot: ${data.department}`);
+
+      const fullDescription = detailLines.length
+        ? `${data.description}\n\n${detailLines.join("\n")}`
+        : data.description;
+
+      const response = await createRequestMutation.mutateAsync({
+        citizenName: data.citizenName,
+        citizenPhone: normalizedPhone,
+        otp: data.otp,
+        type: "other",
+        description: fullDescription,
+        address: { full: data.address },
+        images: uploadedImage ? [uploadedImage] : [],
+      });
+
+      setTrackingNumber(response.requestNumber);
+      setShowSuccess(true);
+      setOtpRequested(false);
+    } catch (error) {
+      const message =
+        error instanceof ApiError ? error.message : "Murojaat yuborilmadi";
+      toast.error(message);
+    }
   };
 
   const handleGetLocation = () => {
@@ -92,7 +161,7 @@ const SubmitRequest = () => {
         },
         (error) => {
           console.error("Error getting location:", error);
-        }
+        },
       );
     }
   };
@@ -102,7 +171,17 @@ const SubmitRequest = () => {
     form.reset();
     setUploadedImage(null);
     setDescriptionLength(0);
+    setOtpRequested(false);
   };
+
+  useEffect(() => {
+    const loadOrganizations = async () => {
+      const orgs = await fetchOrganizations();
+      setOrganizations(orgs);
+    };
+
+    loadOrganizations();
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -111,23 +190,45 @@ const SubmitRequest = () => {
         <div className="container mx-auto px-4 py-12">
           <div className="max-w-3xl mx-auto">
             <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold mb-2">Yangi Murojaat Yuborish</h1>
-              <p className="text-muted-foreground">Muammoning tafsilotlarini kiriting</p>
+              <h1 className="text-3xl font-bold mb-2">
+                Yangi Murojaat Yuborish
+              </h1>
+              <p className="text-muted-foreground">
+                Muammoning tafsilotlarini kiriting
+              </p>
             </div>
 
             <div className="bg-card rounded-2xl shadow-lg p-6 md:p-8">
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className="space-y-6"
+                >
                   {/* Image Upload */}
                   <ImageUpload
                     uploadedImage={uploadedImage}
                     setUploadedImage={setUploadedImage}
                   />
 
-                  {/* Organization Selection */}
+                  {/* Citizen Name */}
                   <FormField
                     control={form.control}
-                    name="requestType"
+                    name="citizenName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Ism-familiya *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Masalan: Aliyev Ali" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Department Selection */}
+                  <FormField
+                    control={form.control}
+                    name="department"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Tashkilotni tanlang *</FormLabel>
@@ -139,12 +240,10 @@ const SubmitRequest = () => {
                                 role="combobox"
                                 className={cn(
                                   "justify-between font-normal",
-                                  !field.value && "text-muted-foreground"
+                                  !field.value && "text-muted-foreground",
                                 )}
                               >
-                                {field.value
-                                  ? organizations.find((org) => org === field.value)
-                                  : "Tashkilotni tanlang"}
+                                {field.value || "Tashkilotni tanlang"}
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
                             </FormControl>
@@ -154,22 +253,27 @@ const SubmitRequest = () => {
                               <CommandInput placeholder="Qidirish..." />
                               <CommandEmpty>Tashkilot topilmadi.</CommandEmpty>
                               <CommandGroup className="max-h-64 overflow-auto">
-                                {organizations.map((org) => (
+                                {organizations.map((organization) => (
                                   <CommandItem
-                                    key={org}
-                                    value={org}
+                                    key={organization._id}
+                                    value={organization._id}
                                     onSelect={() => {
-                                      form.setValue("requestType", org);
+                                      form.setValue(
+                                        "department",
+                                        organization._id,
+                                      );
                                       setOpenOrg(false);
                                     }}
                                   >
                                     <Check
                                       className={cn(
                                         "mr-2 h-4 w-4",
-                                        org === field.value ? "opacity-100" : "opacity-0"
+                                        organization._id === field.value
+                                          ? "opacity-100"
+                                          : "opacity-0",
                                       )}
                                     />
-                                    {org}
+                                    {organization.name}
                                   </CommandItem>
                                 ))}
                               </CommandGroup>
@@ -203,7 +307,7 @@ const SubmitRequest = () => {
                         <div className="flex justify-between items-center">
                           <FormMessage />
                           <span className="text-sm text-muted-foreground">
-                            {descriptionLength} / 500
+                            {descriptionLength} / 1000
                           </span>
                         </div>
                       </FormItem>
@@ -270,6 +374,30 @@ const SubmitRequest = () => {
                     )}
                   />
 
+                  {otpRequested && (
+                    <FormField
+                      control={form.control}
+                      name="otp"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tasdiqlash kodi *</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="123456"
+                              inputMode="numeric"
+                              maxLength={6}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                          <p className="text-xs text-muted-foreground">
+                            Telefoningizga yuborilgan kodni kiriting
+                          </p>
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
                   {/* Additional Info */}
                   <FormField
                     control={form.control}
@@ -300,19 +428,26 @@ const SubmitRequest = () => {
                         form.reset();
                         setUploadedImage(null);
                         setDescriptionLength(0);
+                        setOtpRequested(false);
                       }}
                       disabled={isSubmitting}
                     >
                       Bekor qilish
                     </Button>
-                    <Button type="submit" className="flex-1" disabled={isSubmitting}>
+                    <Button
+                      type="submit"
+                      className="flex-1"
+                      disabled={isSubmitting}
+                    >
                       {isSubmitting ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Yuklanmoqda...
                         </>
+                      ) : otpRequested ? (
+                        "Murojaatni yuborish"
                       ) : (
-                        "Yuborish"
+                        "Kod yuborish"
                       )}
                     </Button>
                   </div>

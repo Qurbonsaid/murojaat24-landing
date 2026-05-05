@@ -15,6 +15,11 @@ npm install
 npm run dev
 ```
 
+## Environment
+
+- `VITE_API_URL` - backend API base URL (default: `http://localhost:5000`).
+	Set this in `.env.development` for local work and in hosting env vars for production.
+
 ## Build
 
 ```bash
