@@ -38,7 +38,7 @@ export class ApiError extends Error {
   }
 }
 
-const API_BASE_URL = import.meta.env.BASE_URL || "http://localhost:8080";
+const API_BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:8080";
 
 const buildUrl = (path: string) => {
   if (path.startsWith("http://") || path.startsWith("https://")) {
