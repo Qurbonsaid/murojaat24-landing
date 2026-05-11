@@ -41,7 +41,7 @@ const formSchema = z.object({
     .string()
     .min(2, { message: "Ism-familiyani kiriting" })
     .max(120, { message: "Ism-familiya juda uzun" }),
-  department: z.string().min(1, { message: "Tashkilotni tanlang" }),
+  organization: z.string().min(1, { message: "Tashkilotni tanlang" }),
   description: z
     .string()
     .min(20, { message: "Tavsif kamida 20 ta belgidan iborat bo'lishi kerak" })
@@ -77,7 +77,7 @@ const SubmitRequest = () => {
     resolver: zodResolver(formSchema),
     defaultValues: {
       citizenName: "",
-      department: "",
+      organization: "",
       description: "",
       address: "",
       phone: "",
@@ -126,7 +126,7 @@ const SubmitRequest = () => {
         detailLines.push(`Qo'shimcha ma'lumot: ${data.additionalInfo}`);
       }
 
-      detailLines.push(`Tashkilot: ${data.department}`);
+      detailLines.push(`Tashkilot: ${data.organization}`);
 
       const fullDescription = detailLines.length
         ? `${data.description}\n\n${detailLines.join("\n")}`
@@ -136,7 +136,7 @@ const SubmitRequest = () => {
         citizenName: data.citizenName,
         citizenPhone: normalizedPhone,
         otp: data.otp,
-        type: "other",
+        organization: data.organization,
         description: fullDescription,
         address: { full: data.address },
         images: uploadedImage ? [uploadedImage] : [],
@@ -228,7 +228,7 @@ const SubmitRequest = () => {
                   {/* Department Selection */}
                   <FormField
                     control={form.control}
-                    name="department"
+                    name="organization"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Tashkilotni tanlang *</FormLabel>
@@ -253,13 +253,13 @@ const SubmitRequest = () => {
                               <CommandInput placeholder="Qidirish..." />
                               <CommandEmpty>Tashkilot topilmadi.</CommandEmpty>
                               <CommandGroup className="max-h-64 overflow-auto">
-                                {organizations.map((organization) => (
+                                {organizations?.map((organization) => (
                                   <CommandItem
                                     key={organization._id}
                                     value={organization._id}
                                     onSelect={() => {
                                       form.setValue(
-                                        "department",
+                                        "organization",
                                         organization._id,
                                       );
                                       setOpenOrg(false);
@@ -275,7 +275,7 @@ const SubmitRequest = () => {
                                     />
                                     {organization.name}
                                   </CommandItem>
-                                ))}
+                                )) || []}
                               </CommandGroup>
                             </Command>
                           </PopoverContent>
