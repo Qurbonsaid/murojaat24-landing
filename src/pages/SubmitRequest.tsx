@@ -240,7 +240,7 @@ const SubmitRequest = () => {
     if (telegramUser) {
       form.setValue(
         "citizenName",
-        ` ${telegramUser.firstName}${telegramUser.lastName ? ` ${telegramUser.lastName}` : ""}`.trim(),
+        `${telegramUser.first_name}${telegramUser.last_name ? ` ${telegramUser.last_name}` : ""}`.trim(),
       );
     }
   }, [form]);
