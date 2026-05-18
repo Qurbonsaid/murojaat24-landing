@@ -218,6 +218,11 @@ const SubmitRequest = () => {
     setOtpRequested(false);
   };
 
+  const selectedOrganization =
+    organizations.find(
+      (organization) => organization._id === form.watch("organization"),
+    ) ?? null;
+
   useEffect(() => {
     const loadOrganizations = async () => {
       const orgs = await fetchOrganizations();
@@ -298,7 +303,8 @@ const SubmitRequest = () => {
                                   !field.value && "text-muted-foreground",
                                 )}
                               >
-                                {field.value || "Tashkilotni tanlang"}
+                                {selectedOrganization?.name ||
+                                  "Tashkilotni tanlang"}
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
                             </FormControl>
