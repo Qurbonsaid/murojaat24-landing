@@ -35,7 +35,7 @@ import { toast } from "sonner";
 import { ApiError } from "@/lib/api/client";
 import { useCreateCitizenRequest, useRequestOtp } from "@/lib/api/requests";
 import { fetchOrganizations, Organization } from "../lib/api/organizations";
-import { useTelegramUser } from "@/hooks/useTelegramUser";
+import { isTMA, retrieveLaunchParams } from "@tma.js/sdk-react";
 
 const formSchema = z.object({
   citizenName: z
@@ -99,7 +99,8 @@ const SubmitRequest = () => {
     const normalizedPhone = normalizePhone(data.phone);
 
     // If opened from Telegram Mini App, skip SMS verification and attach telegramId
-    if (telegramUser) {
+    if (isTMA()) {
+      const telegramUser = retrieveLaunchParams().tgWebAppData.user;
       try {
         const detailLines = [];
 
@@ -233,15 +234,16 @@ const SubmitRequest = () => {
   }, []);
 
   // Prefill citizen name from Telegram user data if available
-  const telegramUser = useTelegramUser();
   useEffect(() => {
+    if (!isTMA()) return;
+    const telegramUser = retrieveLaunchParams().tgWebAppData.user;
     if (telegramUser) {
       form.setValue(
         "citizenName",
         ` ${telegramUser.firstName}${telegramUser.lastName ? ` ${telegramUser.lastName}` : ""}`.trim(),
       );
     }
-  }, [telegramUser, form]);
+  }, [form]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -435,7 +437,7 @@ const SubmitRequest = () => {
                     )}
                   />
 
-                  {otpRequested && !telegramUser && (
+                  {otpRequested && !isTMA() && (
                     <FormField
                       control={form.control}
                       name="otp"
@@ -505,7 +507,7 @@ const SubmitRequest = () => {
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Yuklanmoqda...
                         </>
-                      ) : telegramUser ? (
+                      ) : isTMA() ? (
                         "Murojaatni yuborish"
                       ) : otpRequested ? (
                         "Murojaatni yuborish"
