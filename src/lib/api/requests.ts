@@ -11,8 +11,7 @@ export type TrackRequestResponse = {
   requestNumber: string;
   status: string;
   statusLabel?: string;
-  organization?: string;
-  typeLabel?: string;
+  organization?: { name: string; governance: string };
   description: string;
   address: {
     full: string;
@@ -24,12 +23,17 @@ export type TrackRequestResponse = {
 
 export type CreateCitizenRequestPayload = {
   citizenName: string;
-  citizenPhone: string;
-  otp: string;
+  citizenPhone?: string;
+  otp?: string;
+  telegramId?: number;
   organization?: string;
   description: string;
   address: {
     full: string;
+    coordinates?: {
+      lat: number;
+      lng: number;
+    } | null;
   };
   images?: string[];
   priority?: "low" | "medium" | "high" | "urgent";
@@ -57,8 +61,8 @@ export const useCreateCitizenRequest = () => {
       const response = await apiRequest<{
         requestNumber: string;
         status: string;
-        organization?: string;
-        citizen: { name: string; phone: string };
+        organization?: { name: string; governance: string };
+        citizen: { name: string; phone: string; telegramId?: number };
       }>("/api/requests/citizen", {
         method: "POST",
         body: JSON.stringify(payload),

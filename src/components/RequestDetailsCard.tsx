@@ -4,7 +4,7 @@ import { Separator } from "@/components/ui/separator";
 
 interface RequestDetails {
   id: string;
-  type: string;
+  organization: { name: string; governance: string };
   address: string;
   phone?: string | null;
   submittedDate: string;
@@ -52,8 +52,10 @@ const RequestDetailsCard = ({ request }: RequestDetailsCardProps) => {
           <Separator />
 
           <div>
-            <p className="text-sm text-muted-foreground mb-1">Murojaat turi</p>
-            <p className="font-medium">{request.type}</p>
+            <p className="text-sm text-muted-foreground mb-1">
+              Murojaat yuborilgan tashkilot
+            </p>
+            <p className="font-medium">{request.organization.name}</p>
           </div>
 
           <Separator />

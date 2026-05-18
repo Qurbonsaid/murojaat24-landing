@@ -1,8 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTelegramContext } from "@/hooks/useTelegramUser";
 
 const Header = () => {
+  const isInTelegram = useTelegramContext();
+
+  // Hide header in Telegram Mini App
+  if (isInTelegram) {
+    return null;
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
@@ -12,7 +20,10 @@ const Header = () => {
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">
-          <Link to="/" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+          <Link
+            to="/"
+            className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+          >
             Bosh sahifa
           </Link>
           <Link
@@ -21,10 +32,16 @@ const Header = () => {
           >
             Murojaat yuborish
           </Link>
-          <Link to="/kuzatish" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+          <Link
+            to="/kuzatish"
+            className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+          >
             Murojaatni kuzatish
           </Link>
-          <Link to="/statistika" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+          <Link
+            to="/statistika"
+            className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+          >
             Statistika
           </Link>
         </nav>

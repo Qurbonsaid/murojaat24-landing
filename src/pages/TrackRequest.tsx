@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ const TrackRequest = () => {
   const [requestData, setRequestData] = useState<TrackRequestResponse | null>(
     null,
   );
+  const [searchParams] = useSearchParams();
   const trackRequestMutation = useTrackRequest();
 
   const statusLabels: Record<string, string> = {
@@ -39,11 +41,27 @@ const TrackRequest = () => {
     });
   };
 
+  const performSearch = useCallback(
+    async (id: string) => {
+      if (!id.trim()) return;
+
+      try {
+        const data = await trackRequestMutation.mutateAsync(id);
+        setRequestData(data);
+      } catch (error) {
+        const message =
+          error instanceof ApiError ? error.message : "Murojaat topilmadi";
+        toast.error(message);
+        setRequestData(null);
+      }
+    },
+    [trackRequestMutation],
+  );
+
   const buildTimelineSteps = (data: TrackRequestResponse) => {
     if (!data.timeline?.length) {
       return [];
     }
-
     const isFinal = ["completed", "verified", "rejected"].includes(data.status);
 
     return data.timeline.map((entry, index) => {
@@ -62,18 +80,19 @@ const TrackRequest = () => {
     });
   };
 
+  useEffect(() => {
+    // Auto-search if requestId is provided in query params
+    const requestId = searchParams.get("id");
+    if (requestId && !trackingNumber) {
+      setTrackingNumber(requestId);
+      performSearch(requestId);
+    }
+  }, [searchParams, trackingNumber, performSearch]);
+
   const handleSearch = async () => {
     if (!trackingNumber.trim()) return;
 
-    try {
-      const data = await trackRequestMutation.mutateAsync(trackingNumber);
-      setRequestData(data);
-    } catch (error) {
-      const message =
-        error instanceof ApiError ? error.message : "Murojaat topilmadi";
-      toast.error(message);
-      setRequestData(null);
-    }
+    performSearch(trackingNumber);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -87,7 +106,10 @@ const TrackRequest = () => {
   const requestDetails = requestData
     ? {
         id: requestData.requestNumber,
-        type: requestData.typeLabel || requestData.type,
+        organization: requestData.organization || {
+          name: "-",
+          governance: "-",
+        },
         address: requestData.address?.full || "-",
         phone: "-",
         submittedDate: formatDateTime(requestData.createdAt),
@@ -121,7 +143,7 @@ const TrackRequest = () => {
                     onChange={(e) =>
                       setTrackingNumber(e.target.value.toUpperCase())
                     }
-                    onKeyPress={handleKeyPress}
+                    onKeyUp={handleKeyPress}
                     className="pl-10 h-12 text-lg"
                   />
                 </div>

@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { ApiError } from "@/lib/api/client";
 import { useCreateCitizenRequest, useRequestOtp } from "@/lib/api/requests";
 import { fetchOrganizations, Organization } from "../lib/api/organizations";
+import { useTelegramUser } from "@/hooks/useTelegramUser";
 
 const formSchema = z.object({
   citizenName: z
@@ -49,6 +50,7 @@ const formSchema = z.object({
       message: "Tavsif maksimal 1000 ta belgidan iborat bo'lishi kerak",
     }),
   address: z.string().min(5, { message: "Aniq manzilni kiriting" }),
+  coordinates: z.any().nullable(),
   phone: z.string().regex(/^\+998\s?\d{2}\s?\d{3}\s?\d{2}\s?\d{2}$/, {
     message: "Telefon raqamini to'g'ri formatda kiriting",
   }),
@@ -80,6 +82,7 @@ const SubmitRequest = () => {
       organization: "",
       description: "",
       address: "",
+      coordinates: null,
       phone: "",
       otp: "",
       additionalInfo: "",
@@ -94,6 +97,44 @@ const SubmitRequest = () => {
 
   const onSubmit = async (data: FormData) => {
     const normalizedPhone = normalizePhone(data.phone);
+
+    // If opened from Telegram Mini App, skip SMS verification and attach telegramId
+    if (telegramUser) {
+      try {
+        const detailLines = [];
+
+        if (data.additionalInfo) {
+          detailLines.push(`Qo'shimcha ma'lumot: ${data.additionalInfo}`);
+        }
+
+        detailLines.push(`Tashkilot: ${data.organization}`);
+
+        const fullDescription = detailLines.length
+          ? `${data.description}\n\n${detailLines.join("\n")}`
+          : data.description;
+
+        const response = await createRequestMutation.mutateAsync({
+          citizenName: data.citizenName,
+          citizenPhone: normalizedPhone || undefined,
+          telegramId: telegramUser.id,
+          organization: data.organization,
+          description: fullDescription,
+          address: { full: data.address, coordinates: data.coordinates },
+          images: uploadedImage ? [uploadedImage] : [],
+        });
+
+        setTrackingNumber(response.requestNumber);
+        setShowSuccess(true);
+        setOtpRequested(false);
+      } catch (error) {
+        const message =
+          error instanceof ApiError ? error.message : "Murojaat yuborilmadi";
+        toast.error(message);
+      }
+
+      return;
+    }
+
     if (!normalizedPhone) {
       toast.error("Telefon raqamni to'g'ri kiriting");
       return;
@@ -138,7 +179,7 @@ const SubmitRequest = () => {
         otp: data.otp,
         organization: data.organization,
         description: fullDescription,
-        address: { full: data.address },
+        address: { full: data.address, coordinates: data.coordinates },
         images: uploadedImage ? [uploadedImage] : [],
       });
 
@@ -157,7 +198,10 @@ const SubmitRequest = () => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           // In a real app, you would use reverse geocoding here
-          form.setValue("address", "Toshkent shahar, Yunusobod tumani");
+          form.setValue("coordinates", {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
         },
         (error) => {
           console.error("Error getting location:", error);
@@ -182,6 +226,17 @@ const SubmitRequest = () => {
 
     loadOrganizations();
   }, []);
+
+  // Prefill citizen name from Telegram user data if available
+  const telegramUser = useTelegramUser();
+  useEffect(() => {
+    if (telegramUser) {
+      form.setValue(
+        "citizenName",
+        ` ${telegramUser.firstName}${telegramUser.lastName ? ` ${telegramUser.lastName}` : ""}`.trim(),
+      );
+    }
+  }, [telegramUser, form]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -374,7 +429,7 @@ const SubmitRequest = () => {
                     )}
                   />
 
-                  {otpRequested && (
+                  {otpRequested && !telegramUser && (
                     <FormField
                       control={form.control}
                       name="otp"
@@ -444,6 +499,8 @@ const SubmitRequest = () => {
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Yuklanmoqda...
                         </>
+                      ) : telegramUser ? (
+                        "Murojaatni yuborish"
                       ) : otpRequested ? (
                         "Murojaatni yuborish"
                       ) : (
