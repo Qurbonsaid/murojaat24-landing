@@ -6,6 +6,7 @@ import {
   Routes,
   useNavigate,
 } from "react-router-dom";
+import { isTMA } from "@tma.js/sdk-react";
 
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
@@ -16,19 +17,25 @@ import TrackRequest from "@/pages/TrackRequest";
 // Inner component to handle routing logic with access to useNavigate hook
 const AppRoutes = () => {
   const navigate = useNavigate();
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    try {
-      if (location.hostname === "/murojaat-yuborish") {
-        const requestId = new URLSearchParams(location.search).get("id");
-        if (requestId) {
-          navigate(`/kuzatish?id=${encodeURIComponent(requestId)}`);
-        }
-      }
-    } catch (error) {
-      // Safely ignore errors when outside Telegram
+    if (!isTMA()) {
+      setInitialized(true);
+      return;
     }
+
+    if (location.search) {
+      const requestId = new URLSearchParams(location.search).get("id");
+      if (requestId) {
+        navigate(`/kuzatish?id=${encodeURIComponent(requestId)}`);
+      }
+    }
+
+    setInitialized(true);
   }, [navigate]);
+
+  if (!initialized) return null;
 
   return (
     <Routes>

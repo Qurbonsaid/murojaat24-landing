@@ -1,13 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useTelegramContext } from "@/hooks/useTelegramUser";
+import { isTMA } from "@tma.js/sdk-react";
 
 const Header = () => {
-  const isInTelegram = useTelegramContext();
-
   // Hide header in Telegram Mini App
-  if (isInTelegram) {
+  if (isTMA()) {
     return null;
   }
 
