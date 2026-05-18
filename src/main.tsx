@@ -7,7 +7,16 @@ import App from "./App";
 import "@/index.css";
 
 const queryClient = new QueryClient();
-init();
+
+// Initialize Telegram SDK if available (safe to fail outside Telegram)
+try {
+  init();
+} catch (error) {
+  console.log(
+    "TMA SDK initialization skipped (running outside Telegram)",
+    error,
+  );
+}
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
