@@ -106,12 +106,14 @@ const TrackRequest = () => {
   const requestDetails = requestData
     ? {
         id: requestData.requestNumber,
+        citizenName: requestData.citizen?.name || undefined,
+        citizenPhone: requestData.citizen?.phone || undefined,
         organization: requestData.organization || {
           name: "-",
           governance: "-",
         },
         address: requestData.address?.full || "-",
-        phone: "-",
+        phone: requestData.citizen?.phone || "-",
         submittedDate: formatDateTime(requestData.createdAt),
         status: requestData.status,
         statusLabel:
@@ -181,7 +183,7 @@ const TrackRequest = () => {
               {/* Problem Section */}
               <RequestProblemSection
                 description={requestData.description}
-                image={requestData.images?.[0] || null}
+                images={requestData.images}
               />
             </div>
           )}

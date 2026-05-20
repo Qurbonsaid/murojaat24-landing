@@ -34,8 +34,11 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api/client";
 import { useCreateCitizenRequest, useRequestOtp } from "@/lib/api/requests";
+import { uploadImages } from "@/lib/api/uploads";
 import { fetchOrganizations, Organization } from "../lib/api/organizations";
 import { isTMA, retrieveLaunchParams } from "@tma.js/sdk-react";
+
+const API_BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:8080";
 
 const formSchema = z.object({
   citizenName: z
@@ -63,7 +66,7 @@ type FormData = z.infer<typeof formSchema>;
 const SubmitRequest = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState("");
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedImages, setUploadedImages] = useState<File[]>([]);
   const [descriptionLength, setDescriptionLength] = useState(0);
   const [openOrg, setOpenOrg] = useState(false);
   const [otpRequested, setOtpRequested] = useState(false);
@@ -98,6 +101,22 @@ const SubmitRequest = () => {
   const onSubmit = async (data: FormData) => {
     const normalizedPhone = normalizePhone(data.phone);
 
+    // Upload images and get public URLs
+    let imageUrls: string[] = [];
+    if (uploadedImages.length > 0) {
+      try {
+        const uploadedUrls = await uploadImages(uploadedImages);
+        imageUrls = uploadedUrls.map((url) => `${API_BASE_URL}/uploads${url}`);
+      } catch (error) {
+        const message =
+          error instanceof ApiError
+            ? error.message
+            : "Rasmlari yuklashda xatolik";
+        toast.error(message);
+        return;
+      }
+    }
+
     // If opened from Telegram Mini App, skip SMS verification and attach telegramId
     if (isTMA()) {
       const telegramUser = retrieveLaunchParams().tgWebAppData.user;
@@ -121,7 +140,7 @@ const SubmitRequest = () => {
           organization: data.organization,
           description: fullDescription,
           address: { full: data.address, coordinates: data.coordinates },
-          images: uploadedImage ? [uploadedImage] : [],
+          images: imageUrls,
         });
 
         setTrackingNumber(response.requestNumber);
@@ -181,7 +200,7 @@ const SubmitRequest = () => {
         organization: data.organization,
         description: fullDescription,
         address: { full: data.address, coordinates: data.coordinates },
-        images: uploadedImage ? [uploadedImage] : [],
+        images: imageUrls,
       });
 
       setTrackingNumber(response.requestNumber);
@@ -214,7 +233,7 @@ const SubmitRequest = () => {
   const handleSuccessClose = () => {
     setShowSuccess(false);
     form.reset();
-    setUploadedImage(null);
+    setUploadedImages([]);
     setDescriptionLength(0);
     setOtpRequested(false);
   };
@@ -268,8 +287,8 @@ const SubmitRequest = () => {
                 >
                   {/* Image Upload */}
                   <ImageUpload
-                    uploadedImage={uploadedImage}
-                    setUploadedImage={setUploadedImage}
+                    uploadedImages={uploadedImages}
+                    setUploadedImages={setUploadedImages}
                   />
 
                   {/* Citizen Name */}
@@ -489,7 +508,7 @@ const SubmitRequest = () => {
                       className="flex-1"
                       onClick={() => {
                         form.reset();
-                        setUploadedImage(null);
+                        setUploadedImages([]);
                         setDescriptionLength(0);
                         setOtpRequested(false);
                       }}

@@ -11,6 +11,7 @@ export type TrackRequestResponse = {
   requestNumber: string;
   status: string;
   statusLabel?: string;
+  citizen?: { name: string; phone: string };
   organization?: { name: string; governance: string };
   description: string;
   address: {

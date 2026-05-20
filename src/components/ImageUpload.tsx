@@ -4,41 +4,45 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 interface ImageUploadProps {
-  uploadedImage: string | null;
-  setUploadedImage: (image: string | null) => void;
+  uploadedImages: File[];
+  setUploadedImages: (images: File[]) => void;
 }
 
-const ImageUpload = ({ uploadedImage, setUploadedImage }: ImageUploadProps) => {
+const ImageUpload = ({
+  uploadedImages,
+  setUploadedImages,
+}: ImageUploadProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (file: File) => {
-    // Check file size (5MB limit)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Fayl hajmi 5MB dan oshmasligi kerak");
+  const handleFilesSelect = (files: FileList | File[]) => {
+    const validFiles = Array.from(files).filter((file) => {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`${file.name} fayli 5MB dan oshmasligi kerak`);
+        return false;
+      }
+
+      if (!file.type.startsWith("image/")) {
+        toast.error(`${file.name} faqat rasm fayli bo'lishi kerak`);
+        return false;
+      }
+
+      return true;
+    });
+
+    if (validFiles.length === 0) {
       return;
     }
 
-    // Check file type
-    if (!file.type.startsWith("image/")) {
-      toast.error("Faqat rasm fayllari yuklanishi mumkin");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setUploadedImage(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    setUploadedImages([...uploadedImages, ...validFiles]);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
 
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      handleFileSelect(file);
+    if (e.dataTransfer.files.length > 0) {
+      handleFilesSelect(e.dataTransfer.files);
     }
   };
 
@@ -52,14 +56,17 @@ const ImageUpload = ({ uploadedImage, setUploadedImage }: ImageUploadProps) => {
   };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFileSelect(file);
+    const files = e.target.files;
+    if (files?.length) {
+      handleFilesSelect(files);
     }
+    e.target.value = "";
   };
 
-  const removeImage = () => {
-    setUploadedImage(null);
+  const removeImage = (indexToRemove: number) => {
+    setUploadedImages(
+      uploadedImages.filter((_, index) => index !== indexToRemove),
+    );
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -67,23 +74,38 @@ const ImageUpload = ({ uploadedImage, setUploadedImage }: ImageUploadProps) => {
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium">Muammoning rasmi (ixtiyoriy)</label>
-      
-      {uploadedImage ? (
-        <div className="relative">
-          <img
-            src={uploadedImage}
-            alt="Yuklangan rasm"
-            className="w-full h-64 object-cover rounded-lg border-2 border-border"
-          />
+      <label className="text-sm font-medium">
+        Muammoning rasmlari (ixtiyoriy)
+      </label>
+
+      {uploadedImages.length > 0 ? (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+            {uploadedImages.map((image, index) => (
+              <div key={`${image.name}-${index}`} className="relative">
+                <img
+                  src={URL.createObjectURL(image)}
+                  alt={`Yuklangan rasm ${index + 1}`}
+                  className="h-40 w-full rounded-lg border-2 border-border object-cover"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute right-2 top-2 h-8 w-8"
+                  onClick={() => removeImage(index)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
           <Button
             type="button"
-            variant="destructive"
-            size="icon"
-            className="absolute top-2 right-2"
-            onClick={removeImage}
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
           >
-            <X className="h-4 w-4" />
+            Yana rasm qo'shish
           </Button>
         </div>
       ) : (
@@ -102,9 +124,11 @@ const ImageUpload = ({ uploadedImage, setUploadedImage }: ImageUploadProps) => {
               <Upload className="h-8 w-8 text-primary" />
             </div>
             <div className="space-y-2">
-              <p className="text-sm font-medium">Muammoning rasmini yuklang</p>
+              <p className="text-sm font-medium">
+                Muammoning rasmlarini yuklang
+              </p>
               <p className="text-xs text-muted-foreground">
-                Yoki faylni bu yerga sudrab oling
+                Yoki bir nechta faylni bu yerga sudrab oling
               </p>
             </div>
             <Button
@@ -115,18 +139,20 @@ const ImageUpload = ({ uploadedImage, setUploadedImage }: ImageUploadProps) => {
               Faylni tanlash
             </Button>
             <p className="text-xs text-muted-foreground">
-              Maksimal hajmi: 5MB. Formatlar: JPG, PNG
+              Maksimal hajmi: 5MB har bir rasm uchun. Formatlar: JPG, PNG
             </p>
           </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileInput}
-            className="hidden"
-          />
         </div>
       )}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={handleFileInput}
+        className="hidden"
+      />
     </div>
   );
 };

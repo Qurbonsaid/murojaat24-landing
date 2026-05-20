@@ -10,6 +10,8 @@ interface RequestDetails {
   submittedDate: string;
   status: string;
   statusLabel?: string;
+  citizenName?: string;
+  citizenPhone?: string;
 }
 
 interface RequestDetailsCardProps {
@@ -42,6 +44,12 @@ const RequestDetailsCard = ({ request }: RequestDetailsCardProps) => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-3">
+          {request.citizenName && (
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Fuqaro ismi</p>
+              <p className="font-semibold">{request.citizenName}</p>
+            </div>
+          )}
           <div>
             <p className="text-sm text-muted-foreground mb-1">
               Murojaat raqami
