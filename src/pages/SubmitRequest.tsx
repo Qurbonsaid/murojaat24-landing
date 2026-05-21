@@ -36,7 +36,7 @@ import { ApiError } from "@/lib/api/client";
 import { useCreateCitizenRequest, useRequestOtp } from "@/lib/api/requests";
 import { uploadImages } from "@/lib/api/uploads";
 import { fetchOrganizations, Organization } from "../lib/api/organizations";
-import { isTMA, retrieveLaunchParams } from "@tma.js/sdk-react";
+import { isTMA, retrieveLaunchParams, miniApp } from "@tma.js/sdk-react";
 
 const API_BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:8080";
 
@@ -127,8 +127,6 @@ const SubmitRequest = () => {
           detailLines.push(`Qo'shimcha ma'lumot: ${data.additionalInfo}`);
         }
 
-        detailLines.push(`Tashkilot: ${data.organization}`);
-
         const fullDescription = detailLines.length
           ? `${data.description}\n\n${detailLines.join("\n")}`
           : data.description;
@@ -187,8 +185,6 @@ const SubmitRequest = () => {
         detailLines.push(`Qo'shimcha ma'lumot: ${data.additionalInfo}`);
       }
 
-      detailLines.push(`Tashkilot: ${data.organization}`);
-
       const fullDescription = detailLines.length
         ? `${data.description}\n\n${detailLines.join("\n")}`
         : data.description;
@@ -236,6 +232,9 @@ const SubmitRequest = () => {
     setUploadedImages([]);
     setDescriptionLength(0);
     setOtpRequested(false);
+    if (isTMA()) {
+      miniApp.close();
+    }
   };
 
   const selectedOrganization =
