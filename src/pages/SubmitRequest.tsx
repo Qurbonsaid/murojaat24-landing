@@ -35,10 +35,9 @@ import { toast } from "sonner";
 import { ApiError } from "@/lib/api/client";
 import { useCreateCitizenRequest, useRequestOtp } from "@/lib/api/requests";
 import { uploadImages } from "@/lib/api/uploads";
-import { fetchOrganizations, Organization } from "../lib/api/organizations";
+import { fetchOrganizations, Organization } from "@/lib/api/organizations";
 import { isTMA, retrieveLaunchParams, miniApp } from "@tma.js/sdk-react";
-
-const API_BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:8080";
+import { buildUrl } from "@/lib/api/client";
 
 const formSchema = z.object({
   citizenName: z
@@ -106,7 +105,7 @@ const SubmitRequest = () => {
     if (uploadedImages.length > 0) {
       try {
         const uploadedUrls = await uploadImages(uploadedImages);
-        imageUrls = uploadedUrls.map((url) => `${API_BASE_URL}/uploads${url}`);
+        imageUrls = uploadedUrls.map((url) => buildUrl("uploads" + url));
       } catch (error) {
         const message =
           error instanceof ApiError
