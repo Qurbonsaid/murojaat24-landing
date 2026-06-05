@@ -69,6 +69,15 @@ const RequestDetailsCard = ({ request }: RequestDetailsCardProps) => {
           <Separator />
 
           <div>
+            <p className="text-sm text-muted-foreground mb-1">Rahbariyat</p>
+            <p className="font-medium">
+              {request.organization.governance || "-"}
+            </p>
+          </div>
+
+          <Separator />
+
+          <div>
             <p className="text-sm text-muted-foreground mb-1">Manzil</p>
             <p className="font-medium text-sm">{request.address}</p>
           </div>
