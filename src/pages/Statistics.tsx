@@ -43,8 +43,7 @@ const SummarySkeleton = () => (
 );
 
 const Statistics = () => {
-  const { data, isLoading, isError } = usePublicStatistics();
-  const statistics = data;
+  const { data: statistics, isLoading, isError } = usePublicStatistics();
 
   const governanceDistribution =
     statistics?.governanceDistribution.map((item) => ({
@@ -82,7 +81,7 @@ const Statistics = () => {
             Murojaatlar statistikasi va tahlili
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            {isLoading && !data
+            {isLoading && !statistics
               ? "Ma'lumotlar yuklanmoqda..."
               : isError
                 ? "API vaqtincha javob bermadi."
@@ -92,9 +91,9 @@ const Statistics = () => {
           </p>
         </div>
 
-        {isLoading && !data && <SummarySkeleton />}
+        {isLoading && !statistics && <SummarySkeleton />}
 
-        {isError && !isLoading && !data && (
+        {isError && !isLoading && !statistics && (
           <Card className="mb-8 border-dashed">
             <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
               <p className="text-base font-medium text-foreground">
@@ -107,7 +106,7 @@ const Statistics = () => {
           </Card>
         )}
 
-        {isLoading && !data ? (
+        {isLoading && !statistics ? (
           <div className="mb-8 space-y-6">
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <ChartSkeleton />

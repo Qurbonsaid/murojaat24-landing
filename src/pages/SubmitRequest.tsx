@@ -32,10 +32,9 @@ import ImageUpload from "@/components/ImageUpload";
 import SuccessModal from "@/components/SuccessModal";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { ApiError } from "@/lib/api/client";
 import { useCreateCitizenRequest, useRequestOtp } from "@/lib/api/requests";
 import { uploadImages } from "@/lib/api/uploads";
-import { fetchOrganizations, Organization } from "@/lib/api/organizations";
+import { useOrganizations } from "@/lib/api/organizations";
 import { isTMA, retrieveLaunchParams, miniApp } from "@tma.js/sdk-react";
 import { buildUrl } from "@/lib/api/client";
 
@@ -69,7 +68,7 @@ const SubmitRequest = () => {
   const [descriptionLength, setDescriptionLength] = useState(0);
   const [openOrg, setOpenOrg] = useState(false);
   const [otpRequested, setOtpRequested] = useState(false);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const { data: organizations } = useOrganizations();
 
   const requestOtpMutation = useRequestOtp();
   const createRequestMutation = useCreateCitizenRequest();
@@ -108,7 +107,7 @@ const SubmitRequest = () => {
         imageUrls = uploadedUrls.map((url) => buildUrl("uploads" + url));
       } catch (error) {
         const message =
-          error instanceof ApiError
+          typeof error?.message === "string"
             ? error.message
             : "Rasmlari yuklashda xatolik";
         toast.error(message);
@@ -145,7 +144,9 @@ const SubmitRequest = () => {
         setOtpRequested(false);
       } catch (error) {
         const message =
-          error instanceof ApiError ? error.message : "Murojaat yuborilmadi";
+          typeof error?.message === "string"
+            ? error.message
+            : "Murojaat yuborilmadi";
         toast.error(message);
       }
 
@@ -164,7 +165,9 @@ const SubmitRequest = () => {
         toast.success("Tasdiqlash kodi yuborildi");
       } catch (error) {
         const message =
-          error instanceof ApiError ? error.message : "Kod yuborishda xatolik";
+          typeof error?.message === "string"
+            ? error.message
+            : "Kod yuborishda xatolik";
         toast.error(message);
       }
       return;
@@ -203,7 +206,9 @@ const SubmitRequest = () => {
       setOtpRequested(false);
     } catch (error) {
       const message =
-        error instanceof ApiError ? error.message : "Murojaat yuborilmadi";
+        typeof error?.message === "string"
+          ? error.message
+          : "Murojaat yuborilmadi";
       toast.error(message);
     }
   };
@@ -240,15 +245,6 @@ const SubmitRequest = () => {
     organizations.find(
       (organization) => organization._id === form.watch("organization"),
     ) ?? null;
-
-  useEffect(() => {
-    const loadOrganizations = async () => {
-      const orgs = await fetchOrganizations();
-      setOrganizations(orgs);
-    };
-
-    loadOrganizations();
-  }, []);
 
   // Prefill citizen name from Telegram user data if available
   useEffect(() => {
@@ -432,7 +428,7 @@ const SubmitRequest = () => {
                         <FormLabel>Telefon raqami *</FormLabel>
                         <FormControl>
                           <Input
-                            placeholder="+998 90 123 45 67"
+                            placeholder="+998 __ ___ __ __"
                             {...field}
                             onChange={(e) => {
                               let value = e.target.value.replace(/\D/g, "");
