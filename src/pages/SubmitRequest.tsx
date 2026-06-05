@@ -242,7 +242,7 @@ const SubmitRequest = () => {
   };
 
   const selectedOrganization =
-    organizations.find(
+    organizations?.find(
       (organization) => organization._id === form.watch("organization"),
     ) ?? null;
 
