@@ -12,6 +12,14 @@ const Index = () => {
         <Hero />
         <Features />
         <Statistics />
+        {location.href.includes("staging") && (
+          <a
+            href="/termo24"
+            className="text-blue-500 hover:underline justify-center flex"
+          >
+            Termo24
+          </a>
+        )}
       </main>
       <Footer />
     </div>

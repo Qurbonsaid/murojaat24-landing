@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, skipToken } from "@tanstack/react-query";
 import { apiRequest } from "./client";
 
 export type RequestTimelineEntry = {
@@ -16,6 +16,13 @@ export type TrackRequestResponse = {
   description: string;
   address: {
     full: string;
+    coordinates?: {
+      lat: number;
+      lng: number;
+    } | null;
+  };
+  assignment?: {
+    estimatedTime?: string;
   };
   timeline: RequestTimelineEntry[];
   createdAt: string;
@@ -74,15 +81,17 @@ export const useCreateCitizenRequest = () => {
   });
 };
 
-export const useTrackRequest = () => {
-  return useMutation({
-    mutationFn: async (requestNumber: string) => {
-      const encoded = encodeURIComponent(requestNumber.trim());
+export const useTrackRequest = (requestNumber?: string) => {
+  return useQuery({
+    queryKey: ["requestTrack"],
+    queryFn: async () => {
       const response = await apiRequest<TrackRequestResponse>(
-        `/api/requests/track/${encoded}`,
+        `/api/requests/track/${requestNumber}`,
       );
-
       return response.data;
     },
+    staleTime: 60_000,
+    retry: false,
+    enabled: false,
   });
 };

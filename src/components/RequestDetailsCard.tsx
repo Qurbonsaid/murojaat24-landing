@@ -7,6 +7,7 @@ interface RequestDetails {
   organization: { name: string; governance: string };
   address: string;
   phone?: string | null;
+  estimatedTime?: string;
   submittedDate: string;
   status: string;
   statusLabel?: string;
@@ -69,6 +70,15 @@ const RequestDetailsCard = ({ request }: RequestDetailsCardProps) => {
           <Separator />
 
           <div>
+            <p className="text-sm text-muted-foreground mb-1">Rahbariyat</p>
+            <p className="font-medium">
+              {request.organization.governance || "-"}
+            </p>
+          </div>
+
+          <Separator />
+
+          <div>
             <p className="text-sm text-muted-foreground mb-1">Manzil</p>
             <p className="font-medium text-sm">{request.address}</p>
           </div>
@@ -88,6 +98,19 @@ const RequestDetailsCard = ({ request }: RequestDetailsCardProps) => {
             </p>
             <p className="font-medium">{request.submittedDate}</p>
           </div>
+
+          {request.estimatedTime && (
+            <>
+              <Separator />
+
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">
+                  Taxminiy bajarilish vaqti
+                </p>
+                <p className="font-medium">{request.estimatedTime} ish kuni</p>
+              </div>
+            </>
+          )}
 
           <Separator />
 
