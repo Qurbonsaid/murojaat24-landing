@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -8,21 +8,23 @@ import { Search } from "lucide-react";
 import TrackingTimeline from "@/components/TrackingTimeline";
 import RequestDetailsCard from "@/components/RequestDetailsCard";
 import RequestProblemSection from "@/components/RequestProblemSection";
-import { toast } from "sonner";
-import { ApiError } from "@/lib/api/client";
-import { TrackRequestResponse, useTrackRequest } from "@/lib/api/requests";
+import { useTrackRequest } from "@/lib/api/requests";
 
 const TrackRequest = () => {
   const [trackingNumber, setTrackingNumber] = useState("");
-  const [requestData, setRequestData] = useState<TrackRequestResponse | null>(
-    null,
-  );
+  const {
+    data: requestData,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useTrackRequest(trackingNumber);
   const [searchParams] = useSearchParams();
-  const trackRequestMutation = useTrackRequest();
+  const isPending = isLoading || isFetching;
 
   const statusLabels: Record<string, string> = {
     new: "Yangi",
     assigned: "Tayinlangan",
+    accepted: "Qabul qilingan",
     "in-progress": "Bajarilmoqda",
     completed: "Yakunlangan",
     verified: "Tasdiqlangan",
@@ -41,24 +43,7 @@ const TrackRequest = () => {
     });
   };
 
-  const performSearch = useCallback(
-    async (id: string) => {
-      if (!id.trim()) return;
-
-      try {
-        const data = await trackRequestMutation.mutateAsync(id);
-        setRequestData(data);
-      } catch (error) {
-        const message =
-          error instanceof ApiError ? error.message : "Murojaat topilmadi";
-        toast.error(message);
-        setRequestData(null);
-      }
-    },
-    [trackRequestMutation],
-  );
-
-  const buildTimelineSteps = (data: TrackRequestResponse) => {
+  const buildTimelineSteps = (data: typeof requestData) => {
     if (!data.timeline?.length) {
       return [];
     }
@@ -85,14 +70,13 @@ const TrackRequest = () => {
     const requestId = searchParams.get("id");
     if (requestId && !trackingNumber) {
       setTrackingNumber(requestId);
-      performSearch(requestId);
+      refetch();
     }
-  }, [searchParams, trackingNumber, performSearch]);
+  }, [searchParams, trackingNumber, refetch]);
 
   const handleSearch = async () => {
-    if (!trackingNumber.trim()) return;
-
-    performSearch(trackingNumber);
+    if (trackingNumber.trim().length < 8) return;
+    refetch();
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -113,8 +97,8 @@ const TrackRequest = () => {
           governance: "-",
         },
         address: requestData.address?.full || "-",
-        phone: requestData.citizen?.phone || "-",
         submittedDate: formatDateTime(requestData.createdAt),
+        estimatedTime: requestData.assignment?.estimatedTime,
         status: requestData.status,
         statusLabel:
           requestData.statusLabel || statusLabels[requestData.status],
@@ -140,11 +124,9 @@ const TrackRequest = () => {
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input
-                    placeholder="Masalan: MUR-2024-001234"
+                    placeholder="Masalan: 26060001"
                     value={trackingNumber}
-                    onChange={(e) =>
-                      setTrackingNumber(e.target.value.toUpperCase())
-                    }
+                    onChange={(e) => setTrackingNumber(e.target.value)}
                     onKeyUp={handleKeyPress}
                     className="pl-10 h-12 text-lg"
                   />
@@ -152,14 +134,10 @@ const TrackRequest = () => {
                 <Button
                   size="lg"
                   onClick={handleSearch}
-                  disabled={
-                    trackRequestMutation.isPending || !trackingNumber.trim()
-                  }
+                  disabled={isPending || trackingNumber.trim().length < 8}
                   className="px-8"
                 >
-                  {trackRequestMutation.isPending
-                    ? "Qidirilmoqda..."
-                    : "Qidirish"}
+                  {isPending ? "Qidirilmoqda..." : "Qidirish"}
                 </Button>
               </div>
             </div>

@@ -6,6 +6,7 @@ import {
   Routes,
   useNavigate,
 } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { isTMA } from "@tma.js/sdk-react";
 
 import Index from "@/pages/Index";
@@ -52,10 +53,14 @@ const AppRoutes = () => {
 };
 
 const App = () => {
+  const queryClient = new QueryClient();
+
   return (
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 };
 
