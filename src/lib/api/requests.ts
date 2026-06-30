@@ -1,4 +1,4 @@
-import { useQuery, useMutation, skipToken } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "./client";
 
 export type RequestTimelineEntry = {
@@ -8,6 +8,7 @@ export type RequestTimelineEntry = {
 };
 
 export type TrackRequestResponse = {
+  _id: string;
   requestNumber: string;
   status: string;
   statusLabel?: string;
@@ -27,6 +28,11 @@ export type TrackRequestResponse = {
   timeline: RequestTimelineEntry[];
   createdAt: string;
   images?: string[];
+  rating?: {
+    score?: number | null;
+    comment?: string | null;
+    ratedAt?: string | null;
+  } | null;
 };
 
 export type CreateCitizenRequestPayload = {
@@ -45,6 +51,23 @@ export type CreateCitizenRequestPayload = {
   };
   images?: string[];
   priority?: "low" | "medium" | "high" | "urgent";
+};
+
+export type RateRequestPayload = {
+  id: string;
+  phone?: string;
+  telegramId?: number;
+  otp?: string;
+  score: number;
+  comment?: string;
+};
+
+export const fetchTrackedRequest = async (requestNumber: string) => {
+  const response = await apiRequest<TrackRequestResponse>(
+    `/api/requests/track/${encodeURIComponent(requestNumber)}`,
+  );
+
+  return response.data;
 };
 
 export const useRequestOtp = () => {
@@ -83,15 +106,36 @@ export const useCreateCitizenRequest = () => {
 
 export const useTrackRequest = (requestNumber?: string) => {
   return useQuery({
-    queryKey: ["requestTrack"],
+    queryKey: ["requestTrack", requestNumber],
     queryFn: async () => {
-      const response = await apiRequest<TrackRequestResponse>(
-        `/api/requests/track/${requestNumber}`,
-      );
-      return response.data;
+      return fetchTrackedRequest(requestNumber || "");
     },
     staleTime: 60_000,
     retry: false,
     enabled: false,
+  });
+};
+
+export const useRateRequest = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...payload }: RateRequestPayload) => {
+      const response = await apiRequest<TrackRequestResponse>(
+        `/api/requests/${id}/rate`,
+        {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        },
+      );
+
+      return response.data;
+    },
+    onSuccess: async (data) => {
+      await queryClient.invalidateQueries({
+        queryKey: ["requestTrack", data.requestNumber],
+      });
+      await queryClient.invalidateQueries({ queryKey: ["public-statistics"] });
+    },
   });
 };

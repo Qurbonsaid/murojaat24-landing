@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Star, Search } from "lucide-react";
 import TrackingTimeline from "@/components/TrackingTimeline";
 import RequestDetailsCard from "@/components/RequestDetailsCard";
 import RequestProblemSection from "@/components/RequestProblemSection";
@@ -29,6 +29,7 @@ const TrackRequest = () => {
     completed: "Yakunlangan",
     verified: "Tasdiqlangan",
     rejected: "Rad etilgan",
+    rated: "Baholangan",
   };
 
   const formatDateTime = (value: string) => {
@@ -70,6 +71,12 @@ const TrackRequest = () => {
     const requestId = searchParams.get("id");
     if (requestId && !trackingNumber) {
       setTrackingNumber(requestId);
+    }
+  }, [searchParams, trackingNumber]);
+
+  useEffect(() => {
+    const requestId = searchParams.get("id");
+    if (requestId && trackingNumber === requestId) {
       refetch();
     }
   }, [searchParams, trackingNumber, refetch]);
@@ -86,6 +93,10 @@ const TrackRequest = () => {
   };
 
   const timelineSteps = requestData ? buildTimelineSteps(requestData) : [];
+  const canRate =
+    requestData &&
+    ["completed", "verified"].includes(requestData.status) &&
+    !requestData.rating?.score;
 
   const requestDetails = requestData
     ? {
@@ -163,6 +174,36 @@ const TrackRequest = () => {
                 description={requestData.description}
                 images={requestData.images}
               />
+
+              {canRate && (
+                <div className="mt-8 rounded-2xl border-2 bg-card p-6 shadow-lg">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-full bg-primary/10 p-3">
+                        <Star className="h-6 w-6 text-primary" />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-semibold">
+                          Bajarilgan ishni baholang
+                        </h2>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Fikringiz xizmat sifatini yaxshilashga yordam beradi.
+                        </p>
+                      </div>
+                    </div>
+
+                    <Button asChild size="lg" className="shrink-0">
+                      <Link
+                        to={`/baholash?id=${encodeURIComponent(
+                          requestData.requestNumber,
+                        )}`}
+                      >
+                        Baholash
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
