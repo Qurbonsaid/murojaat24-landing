@@ -6,6 +6,7 @@ This project is intentionally separated from the internal ecosystem/dashboard ap
 - `/`
 - `/murojaat-yuborish`
 - `/kuzatish`
+- `/baholash`
 - `/statistika`
 
 ## Run locally
@@ -17,7 +18,7 @@ npm run dev
 
 ## Environment
 
-- `VITE_API_URL` - backend API base URL (default: `http://localhost:5000`).
+- `VITE_BASE_URL` - backend API base URL (default: `http://localhost:8080`).
 	Set this in `.env.development` for local work and in hosting env vars for production.
 
 ## Build

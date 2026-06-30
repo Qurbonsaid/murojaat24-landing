@@ -15,6 +15,7 @@ import Statistics from "@/pages/Statistics";
 import SubmitRequest from "@/pages/SubmitRequest";
 import TrackRequest from "@/pages/TrackRequest";
 import Termo24Page from "@/pages/Termo24";
+import RateRequest from "@/pages/RateRequest";
 
 // Inner component to handle routing logic with access to useNavigate hook
 const AppRoutes = () => {
@@ -27,7 +28,7 @@ const AppRoutes = () => {
       return;
     }
 
-    if (location.search) {
+    if (location.pathname === "/" && location.search) {
       const requestId = new URLSearchParams(location.search).get("id");
       if (requestId) {
         navigate(`/kuzatish?id=${encodeURIComponent(requestId)}`);
@@ -44,6 +45,7 @@ const AppRoutes = () => {
       <Route path="/" element={<Index />} />
       <Route path="/murojaat-yuborish" element={<SubmitRequest />} />
       <Route path="/kuzatish" element={<TrackRequest />} />
+      <Route path="/baholash" element={<RateRequest />} />
       <Route path="/statistika" element={<Statistics />} />
       <Route path="/home" element={<Navigate to="/" replace />} />
       <Route path="/termo24" element={<Termo24Page />} />
