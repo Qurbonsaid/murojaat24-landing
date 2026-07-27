@@ -14,7 +14,6 @@ import NotFound from "@/pages/NotFound";
 import Statistics from "@/pages/Statistics";
 import SubmitRequest from "@/pages/SubmitRequest";
 import TrackRequest from "@/pages/TrackRequest";
-import Termo24Page from "@/pages/Termo24";
 import RateRequest from "@/pages/RateRequest";
 
 // Inner component to handle routing logic with access to useNavigate hook
@@ -48,7 +47,6 @@ const AppRoutes = () => {
       <Route path="/baholash" element={<RateRequest />} />
       <Route path="/statistika" element={<Statistics />} />
       <Route path="/home" element={<Navigate to="/" replace />} />
-      <Route path="/termo24" element={<Termo24Page />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
