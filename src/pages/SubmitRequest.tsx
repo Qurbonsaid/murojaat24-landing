@@ -56,7 +56,6 @@ const formSchema = z.object({
     message: "Telefon raqamini to'g'ri formatda kiriting",
   }),
   otp: z.string().optional(),
-  additionalInfo: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -86,7 +85,6 @@ const SubmitRequest = () => {
       coordinates: null,
       phone: "",
       otp: "",
-      additionalInfo: "",
     },
   });
 
@@ -119,22 +117,12 @@ const SubmitRequest = () => {
     if (isTMA()) {
       const telegramUser = retrieveLaunchParams().tgWebAppData.user;
       try {
-        const detailLines = [];
-
-        if (data.additionalInfo) {
-          detailLines.push(`Qo'shimcha ma'lumot: ${data.additionalInfo}`);
-        }
-
-        const fullDescription = detailLines.length
-          ? `${data.description}\n\n${detailLines.join("\n")}`
-          : data.description;
-
         const response = await createRequestMutation.mutateAsync({
           citizenName: data.citizenName,
           citizenPhone: normalizedPhone || undefined,
           telegramId: telegramUser.id,
           organization: data.organization,
-          description: fullDescription,
+          description: data.description,
           address: { full: data.address, coordinates: data.coordinates },
           images: imageUrls,
         });
@@ -181,22 +169,12 @@ const SubmitRequest = () => {
     }
 
     try {
-      const detailLines = [];
-
-      if (data.additionalInfo) {
-        detailLines.push(`Qo'shimcha ma'lumot: ${data.additionalInfo}`);
-      }
-
-      const fullDescription = detailLines.length
-        ? `${data.description}\n\n${detailLines.join("\n")}`
-        : data.description;
-
       const response = await createRequestMutation.mutateAsync({
         citizenName: data.citizenName,
         citizenPhone: normalizedPhone,
         otp: data.otp,
         organization: data.organization,
-        description: fullDescription,
+        description: data.description,
         address: { full: data.address, coordinates: data.coordinates },
         images: imageUrls,
       });
@@ -473,26 +451,6 @@ const SubmitRequest = () => {
                       )}
                     />
                   )}
-
-                  {/* Additional Info */}
-                  <FormField
-                    control={form.control}
-                    name="additionalInfo"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Qo'shimcha ma'lumot (ixtiyoriy)</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Agar qo'shimcha tafsilotlar bo'lsa, yozing..."
-                            className="resize-none"
-                            rows={3}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
 
                   {/* Buttons */}
                   <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4">
