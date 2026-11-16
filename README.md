@@ -19,7 +19,7 @@ npm run dev
 ## Environment
 
 - `VITE_BASE_URL` - backend API base URL (default: `http://localhost:8080`).
-	Set this in `.env.development` for local work and in hosting env vars for production.
+	Set this in `.env.local` for local work and in hosting env vars for production.
 
 ## Build
 
